@@ -4,11 +4,6 @@ import ctypes
 # custom libraries
 from source import candles
 
-# Expands scrollbar when creating new candles every 100ms
-def updateScrollSpace(ChartCanvas: tk.Canvas) -> None:
-    ChartCanvas.configure(scrollregion=ChartCanvas.bbox("all"))
-    Root.after(100, lambda: updateScrollSpace(ChartCanvas))
-
 # Chart column vars
 ColumnWidth = 40
 CanvasColumnSpacing = 20
@@ -72,7 +67,6 @@ for i in range(20):
 
     ChartCanvas.create_rectangle(x1, -500, x2, -200, outline="white", fill="red")
 
-
 # Window dragging using ctypes so I can use native windows title bar dragging,
 # which runs much more efficiently than a custom tkinter set up
 User32 = ctypes.windll.user32
@@ -87,9 +81,18 @@ def startDrag(event):
 TitleBar.bind("<Button-1>", startDrag)
 TitleLabel.bind("<Button-1>", startDrag)
 
+# Expands scrollbar when creating new candles every 100ms
+def updateScrollSpace(ChartCanvas: tk.Canvas) -> None:
+    # Sets the scrolling region to be the area that any canvas objects take up
+    ChartCanvas.configure(scrollregion=ChartCanvas.bbox("all"))
+
+    # Calls this function again after 100ms
+    Root.after(100, lambda: updateScrollSpace(ChartCanvas))
+
 # Start updating the canvas scroll
 updateScrollSpace(ChartCanvas)
 
+# https://www.tutorialspoint.com/article/what-s-the-difference-between-update-and-update-idletasks-in-tkinter
 Root.update_idletasks()
 
 # Get the window handle
@@ -102,6 +105,7 @@ Hwnd = User32.GetAncestor(Hwnd, GA_Root)
 # Windows window API style vars so I can remove the title bar & resizing without removing native title bar dragging & the taskbar icon
 # https://learn.microsoft.com/en-us/windows/win32/winmsg/window-styles
 # https://learn.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
+
 GWL_STYLE = -16
 WS_CAPTION = 0x00C00000
 WS_THICKFRAME = 0x00040000
@@ -134,6 +138,5 @@ User32.SetWindowPos(
     SWP_NOZORDER |
     SWP_FRAMECHANGED
 )
-
 
 Root.mainloop()

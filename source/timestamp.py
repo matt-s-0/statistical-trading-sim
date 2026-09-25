@@ -1,4 +1,5 @@
-class SmallTimeStamp:
+# Timestamp 
+class smallTimeStamp:
     def __init__(self, Seconds: int, Minutes: int, Hours: int) -> None:
         TotalSeconds = Seconds + Minutes * 60 + Hours * 3600
 
