@@ -1,21 +1,21 @@
 import tkinter as tk
 import ctypes
 
-# methods
+# custom libraries
+from source import candles
 
 # Expands scrollbar when creating new candles every 100ms
-def updateScrollSpace(chartCanvas: tk.Canvas) -> None:
-    chartCanvas.configure(scrollregion=chartCanvas.bbox("all"))
-    Root.after(100, lambda: updateScrollSpace(chartCanvas))
+def updateScrollSpace(ChartCanvas: tk.Canvas) -> None:
+    ChartCanvas.configure(scrollregion=ChartCanvas.bbox("all"))
+    Root.after(100, lambda: updateScrollSpace(ChartCanvas))
 
-# vars
+# Chart column vars
 ColumnWidth = 40
 CanvasColumnSpacing = 20
 
 # Create window & configure it
 Root = tk.Tk()
 Root.geometry("800x600")
-# Root.overrideredirect(True)
 
 # Title bar
 TitleBar = tk.Frame(Root, bg="#2e2e2e", relief="raised", bd=0)
@@ -43,55 +43,61 @@ SideBar.pack(anchor="w", side="left")
 
 # Main frame
 MainFrame = tk.Frame(Root, bg="#1f1f1f")
-MainFrame.pack(fill="both", expand=True)
+MainFrame.pack(side="left", fill="both", expand=True)
 
 # A canvas allows rectangles and other shapes to be created, which is useful for making candles
-chartCanvas = tk.Canvas(MainFrame, background="#1f1f1f", highlightthickness=0)
-chartCanvas.pack(fill="both", expand=True)
+ChartCanvas = tk.Canvas(MainFrame, background="#1f1f1f", highlightthickness=0)
 
 # Creates a scrollbar so you can scroll horizontally to see candlesticks that are out of view
-scrollbar = tk.Scrollbar(MainFrame, orient="horizontal", command=chartCanvas.xview)
-scrollbar.pack(side="bottom", fill="x")
+HorizontalCanvasScrollbar = tk.Scrollbar(MainFrame, orient="horizontal", command=ChartCanvas.xview)
+HorizontalCanvasScrollbar.pack(side="bottom", fill="x")
+
+VerticalCanvasScrollbar = tk.Scrollbar(MainFrame, orient="vertical", command=ChartCanvas.yview)
+VerticalCanvasScrollbar.pack(side="right", fill="y")
+
+# Pack after scrollbars so that scrollbars don't get cut off by the canvas
+ChartCanvas.pack(fill="both", expand=True)
 
 # Sets the scrollbar to scroll the chart canvas
-chartCanvas.configure(xscrollcommand=scrollbar.set)
+ChartCanvas.configure(xscrollcommand=HorizontalCanvasScrollbar.set, yscrollcommand=VerticalCanvasScrollbar.set)
 
 # Makes it so that when your mouse is over the canvas you can use the scrollbar
-chartCanvas.bind("<Shift-MouseWheel>", lambda event: chartCanvas.xview_scroll(-1 * (event.delta // 120), "units"))
+ChartCanvas.bind("<Shift-MouseWheel>", lambda event: ChartCanvas.xview_scroll(-1 * (event.delta // 120), "units"))
+ChartCanvas.bind("<MouseWheel>", lambda event: ChartCanvas.yview_scroll(-1 * (event.delta // 120), "units"))
 
-for i in range(30):
+# Testing rectangle creation
+for i in range(20):
     x1 = i* (ColumnWidth + CanvasColumnSpacing)
     x2 = x1 + ColumnWidth
 
-    chartCanvas.create_rectangle(x1, 0, x2, 50, outline="white")
+    ChartCanvas.create_rectangle(x1, -500, x2, -200, outline="white", fill="red")
 
 
 # Window dragging using ctypes so I can use native windows title bar dragging,
 # which runs much more efficiently than a custom tkinter set up
-user32 = ctypes.windll.user32
+User32 = ctypes.windll.user32
 
 WM_NCLBUTTONDOWN = 0x00A1
 HTCAPTION = 0x0002
 
 def startDrag(event):
-    user32.ReleaseCapture()
-
-    Root.after(1, lambda: user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0))
+    User32.ReleaseCapture()
+    Root.after(1, lambda: User32.PostMessageW(Hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0))
 
 TitleBar.bind("<Button-1>", startDrag)
 TitleLabel.bind("<Button-1>", startDrag)
 
 # Start updating the canvas scroll
-updateScrollSpace(chartCanvas)
+updateScrollSpace(ChartCanvas)
 
 Root.update_idletasks()
 
 # Get the window handle
-hwnd = Root.winfo_id()
+Hwnd = Root.winfo_id()
 
 # Get the top level window hwnd
 GA_Root = 2
-hwnd = user32.GetAncestor(hwnd, GA_Root)
+Hwnd = User32.GetAncestor(Hwnd, GA_Root)
 
 # Windows window API style vars so I can remove the title bar & resizing without removing native title bar dragging & the taskbar icon
 # https://learn.microsoft.com/en-us/windows/win32/winmsg/window-styles
@@ -104,14 +110,14 @@ WS_MAXIMIZEBOX = 0x00010000
 WS_SYSMENU = 0x00080000
 
 # Get the current style
-style = user32.GetWindowLongW(hwnd, GWL_STYLE)
+style = User32.GetWindowLongW(Hwnd, GWL_STYLE)
 
 # Removes title bar
 style &= ~WS_CAPTION
 style &= ~WS_THICKFRAME
 
 # Applies the new style
-user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+User32.SetWindowLongW(Hwnd, GWL_STYLE, style)
 
 # Forces windows to recalculate the window
 SWP_NOMOVE = 0x0002
@@ -119,8 +125,8 @@ SWP_NOSIZE = 0x0001
 SWP_NOZORDER = 0x0004
 SWP_FRAMECHANGED = 0x0020
 
-user32.SetWindowPos(
-    hwnd,
+User32.SetWindowPos(
+    Hwnd,
     0,
     0, 0, 0, 0,
     SWP_NOMOVE |
